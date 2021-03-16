@@ -65,3 +65,11 @@ func (c *Cache) RemoveOldest() {
 		c.usedBytes -= int64(len(kv.key)) + int64(kv.value.Len())
 	}
 }
+
+func (c *Cache) ShowSize() (int64, int64) {
+	return c.maxBytes, c.usedBytes
+}
+
+func (c *Cache) Len() int {
+	return c.ll.Len()
+}
