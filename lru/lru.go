@@ -42,16 +42,16 @@ func (c *Cache) Add(key string, value Value) {
 	element, ok := c.cache[key]
 	if ok {
 		c.ll.MoveToFront(element)
-		kv := element.Value.(*entry)
+		kv := element.Value.(*entry)                              //从list中强制转回*entry 指针
 		c.usedBytes += int64(value.Len()) - int64(kv.value.Len()) // 键不变，值更新的情况下，更新旧值的大小
 		kv.value = value                                          // 更新值
 	} else {
-		ele := c.ll.PushFront(&entry{key, value})
-		c.cache[key] = ele
-		c.usedBytes += int64(len(key)) + int64(value.Len())
+		ele := c.ll.PushFront(&entry{key, value})           // 具体值存在list
+		c.cache[key] = ele                                  // map里面存指向值的指针
+		c.usedBytes += int64(len(key)) + int64(value.Len()) //用掉的空间包括键和值
 	}
 
-	for c.maxBytes != 0 && c.maxBytes < c.usedBytes {
+	for c.maxBytes != 0 && c.maxBytes < c.usedBytes { // 如果加入一个特别大的值，就要一直移除，直到不超限制
 		c.RemoveOldest()
 	}
 }
