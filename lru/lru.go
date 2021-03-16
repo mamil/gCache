@@ -1,14 +1,13 @@
-package main
+package lru
 
 import (
 	"container/list"
-	"fmt"
 )
 
 type Cache struct {
 	maxBytes  int64
 	usedBytes int64
-	ll      *list.List
+	ll        *list.List
 	cache     map[string]*list.Element
 }
 
@@ -21,34 +20,48 @@ type Value interface {
 	Len() int
 }
 
-func New(maxBytes int64) *Cache{
+func New(maxBytes int64) *Cache {
 	return &Cache{
 		maxBytes: maxBytes,
-		ll: list.New(),
-		cache: make(map[string]*list.Element)
+		ll:       list.New(),
+		cache:    make(map[string]*list.Element),
 	}
 }
 
-func (c *Cache) Get(key string) (value Value, ok bool){
+func (c *Cache) Get(key string) (value Value, ok bool) {
 	element, ok := c.cache[key]
-	if ok{
+	if ok {
 		c.ll.MoveToFront(element)
-		v := element.Value.(*entry)
+		kv := element.Value.(*entry)
 		return kv.value, true
 	}
 	return nil, false
 }
 
-func main() {
-	var c Cache
-	c.maxBytes = 64
-
-	lru := New(int64(0))
-	lru.Add("key1", String("1234"))
-	if v, ok := lru.Get("key1"); !ok || string(v.(String)) != "1234" {
-		t.Fatalf("cache hit key1=1234 failed")
+func (c *Cache) Add(key string, value Value) {
+	element, ok := c.cache[key]
+	if ok {
+		c.ll.MoveToFront(element)
+		kv := element.Value.(*entry)
+		c.usedBytes += int64(value.Len()) - int64(kv.value.Len()) // 键不变，值更新的情况下，更新旧值的大小
+		kv.value = value                                          // 更新值
+	} else {
+		ele := c.ll.PushFront(&entry{key, value})
+		c.cache[key] = ele
+		c.usedBytes += int64(len(key)) + int64(value.Len())
 	}
-	if _, ok := lru.Get("key2"); ok {
-		t.Fatalf("cache miss key2 failed")
+
+	for c.maxBytes != 0 && c.maxBytes < c.usedBytes {
+		c.RemoveOldest()
+	}
+}
+
+func (c *Cache) RemoveOldest() {
+	element := c.ll.Back()
+	if element != nil {
+		c.ll.Remove(element)
+		kv := element.Value.(*entry)
+		delete(c.cache, kv.key)
+		c.usedBytes -= int64(len(kv.key)) + int64(kv.value.Len())
 	}
 }
