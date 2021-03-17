@@ -40,6 +40,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		getter:    getter,
 	}
 	groups[name] = g
+	log.Printf("new group %s added", name)
 	return g
 }
 

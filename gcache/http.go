@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const defaultBasePath = "/gcache"
+const defaultBasePath = "/gcache/"
 
 type HTTPPool struct {
 	self     string
@@ -34,6 +34,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// /<basepath>/<groupname>/<key> required
 	parts := strings.SplitN(r.URL.Path[len(p.basePath):], "/", 2)
+
 	if len(parts) != 2 {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		p.Log("split error: %s", parts)
@@ -42,6 +43,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	groupName := parts[0]
 	key := parts[1]
+	p.Log("receive request, url:%s, groupName:%s, key:%s", r.URL.Path, groupName, key)
 
 	group := GetGroup(groupName)
 	if group == nil {
