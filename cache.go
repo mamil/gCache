@@ -1,33 +1,33 @@
 package gCache
 
-import(
+import (
 	"gCache/lru"
 	"sync"
 )
 
-type cache struct{
-	mu sync.Mutex
-	lru lru.Cache
+type cache struct {
+	mu         sync.Mutex
+	lru        *lru.Cache
 	cacheBytes int64
 }
 
-func (c *cache) add(key string, value ByteView){
+func (c *cache) add(key string, value ByteView) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.lru == nil {
-		c.lru = lru.New(cacheBytes)
+		c.lru = lru.New(c.cacheBytes)
 	}
 	c.lru.Add(key, value)
 }
 
-func (c *cache) get(key string) (value ByteView, ok bool){
+func (c *cache) get(key string) (value ByteView, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.lru == nil{
+	if c.lru == nil {
 		return
 	}
 
-	if v, ok := c.lru.Get(key); ok{
+	if v, ok := c.lru.Get(key); ok {
 		return v.(ByteView), ok
 	}
 
