@@ -23,6 +23,7 @@ func main() {
 			return nil, fmt.Errorf("%s not exist", key)
 		}))
 
+	// curl http://localhost:9999/gcache/scores/Tom
 	addr := "localhost:9999"
 	peers := gcache.NewHTTPPool(addr)
 	log.Println("geecache is running at", addr)
