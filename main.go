@@ -32,19 +32,21 @@ func createGroup() *gcache.Group {
 		}))
 }
 
-func startCacheServer(addr string, addrs []string, gee *gcache.Group) {
+// 启动缓存服务
+func startCacheServer(addr string, addrs []string, g *gcache.Group) {
 	peers := gcache.NewHTTPPool(addr)
 	peers.Set(addrs...)
-	gee.RegisterPeers(peers)
+	g.RegisterPeers(peers)
 	log.Println("gcache is running at", addr)
 	log.Fatal(http.ListenAndServe(addr[7:], peers))
 }
 
-func startAPIServer(apiAddr string, gee *gcache.Group) {
+// 启动API服务
+func startAPIServer(apiAddr string, g *gcache.Group) {
 	http.Handle("/api", http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			key := r.URL.Query().Get("key")
-			view, err := gee.Get(key)
+			view, err := g.Get(key)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -55,7 +57,6 @@ func startAPIServer(apiAddr string, gee *gcache.Group) {
 		}))
 	log.Println("fontend server is running at", apiAddr)
 	log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
-
 }
 
 func main() {
@@ -77,9 +78,9 @@ func main() {
 		addrs = append(addrs, v)
 	}
 
-	gee := createGroup()
+	gcache := createGroup()
 	if api {
-		go startAPIServer(apiAddr, gee)
+		go startAPIServer(apiAddr, gcache)
 	}
-	startCacheServer(addrMap[port], addrs, gee)
+	startCacheServer(addrMap[port], addrs, gcache)
 }

@@ -24,6 +24,7 @@ type HTTPPool struct {
 	httpGetter map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8008"
 }
 
+// 返回HTTPPool，储存了节点信息和获取数据的Get方法
 func NewHTTPPool(self string) *HTTPPool {
 	return &HTTPPool{
 		self:     self,
@@ -71,6 +72,7 @@ func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(v.ByteSlice())
 }
 
+// 存储远程节点的信息。
 func (p *HTTPPool) Set(peers ...string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -92,14 +94,16 @@ func (p *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
 	return nil, false
 }
 
+// 储存将要访问的远程节点的地址。
 type httpGetter struct {
 	baseURL string
 }
 
+// 从远程节点获取数据。
 func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 	u := fmt.Sprintf(
 		"%v%v/%v",
-		h.baseURL, // http://example.com/_geecache/
+		h.baseURL, // http://example.com/gcache/
 		url.QueryEscape(group),
 		url.QueryEscape(key),
 	)
@@ -122,4 +126,4 @@ func (h *httpGetter) Get(group string, key string) ([]byte, error) {
 	return bytes, nil
 }
 
-var _ PeerGetter = (*httpGetter)(nil)
+// var _ PeerGetter = (*httpGetter)(nil) // 这个的作用还不清楚

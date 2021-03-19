@@ -15,6 +15,8 @@ type Map struct {
 	hashMap  map[int]string // 虚拟节点与真实节点的映射,键是虚拟节点的哈希值，值是真实节点的名称。
 }
 
+// 创建Hash对应的map。
+// 用于保存真实节点和虚拟节点信息
 func New(replicas int, fn Hash) *Map {
 	m := &Map{
 		replicas: replicas,
@@ -27,7 +29,7 @@ func New(replicas int, fn Hash) *Map {
 	return m
 }
 
-// 这里只保存了key，用来指明传入的key应该对应哪个真实的节点值，这样找到节点之后，从那个节点去拿数据。并非真正存储数据
+// 这里只保存了key，用来指明传入的key应该对应哪个真实的节点值，这样找到节点之后，从那个节点去拿数据。并非真正存储数据。
 // 增加节点，传入真实节点，会创建m.replicas个虚拟节点
 func (m *Map) Add(keys ...string) {
 	for _, key := range keys {
@@ -40,6 +42,7 @@ func (m *Map) Add(keys ...string) {
 	sort.Ints(m.keys) // 环上的哈希值排序
 }
 
+// 根据key值，计算这个数据应该缓存在那个节点上。
 func (m *Map) Get(key string) string {
 	if len(m.keys) == 0 {
 		return ""
