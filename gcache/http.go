@@ -84,6 +84,7 @@ func (p *HTTPPool) Set(peers ...string) {
 	}
 }
 
+// 获取请求key在哪个节点上。
 func (p *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
