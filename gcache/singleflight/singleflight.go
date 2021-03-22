@@ -2,14 +2,14 @@ package singleflight
 
 import "sync"
 
-// 正在进行中，或已经结束的请求
+// 正在进行中的请求
 type call struct {
 	wg  sync.WaitGroup
 	val interface{}
 	err error
 }
 
-// singleflight 的主数据结构，管理不同 key 的请求(call)。
+// 记录有哪些key正在请求
 type Group struct {
 	mu sync.Mutex
 	m  map[string]*call
@@ -36,7 +36,7 @@ func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, err
 	c.wg.Done()         // 请求结束
 
 	g.mu.Lock()
-	delete(g.m, key) // 更新 g.m, [TODO]为什么要删除？
+	delete(g.m, key) // 更新 g.m。 不能一直留着，数据可能过期，更新，下次要重新获取
 	g.mu.Unlock()
 
 	return c.val, c.err
