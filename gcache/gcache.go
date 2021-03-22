@@ -2,6 +2,7 @@ package gcache
 
 import (
 	"fmt"
+	"gCache/gcache/singleflight"
 	"log"
 	"sync"
 )
@@ -11,6 +12,7 @@ type Group struct {
 	mainCache cache
 	getter    Getter
 	peers     PeerPicker
+	loader    *singleflight.Group
 }
 
 type Getter interface {
@@ -40,6 +42,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name:      name,
 		mainCache: cache{cacheBytes: cacheBytes},
 		getter:    getter,
+		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
 	log.Printf("new group %s added", name)
@@ -68,18 +71,26 @@ func (g *Group) Get(key string) (ByteView, error) {
 	return g.load(key) // 缓存没有，就从本地加载到cache
 }
 
-// 使用 PickPeer() 方法选择节点，若非本机节点，则调用 getFromPeer() 从远程获取。若是本机节点或失败，则回退到 getLocal()，从本地数据库加载数据。
+// 使用 PickPeer() 方法选择节点，若非本机节点，则调用 getFromPeer() 从远程获取。
+// 若是本机节点或失败，则回退到 getLocal()，从本地数据库加载数据。
 func (g *Group) load(key string) (value ByteView, err error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err = g.getFromPeer(peer, key); err == nil {
-				return value, nil
+	view, err := g.loader.Do(key, func() (interface{}, error) { // 每个值只取一次，无论本地还是远端
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err = g.getFromPeer(peer, key); err == nil {
+					return value, nil
+				}
+				log.Println("[GeeCache] Failed to get from peer", err)
 			}
-			log.Println("[GeeCache] Failed to get from peer", err)
 		}
-	}
 
-	return g.getLocal(key)
+		return g.getLocal(key)
+	})
+
+	if err == nil {
+		return view.(ByteView), nil
+	}
+	return
 }
 
 // 以用户定义的方式从本地加载数据
