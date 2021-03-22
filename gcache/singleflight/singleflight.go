@@ -15,6 +15,8 @@ type Group struct {
 	m  map[string]*call
 }
 
+// 同时来多个相同key的请求的时候，合并处理，只调用一次
+// 但不会把长时间的请求都合并
 func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, error) {
 	g.mu.Lock()
 	if g.m == nil {

@@ -11,5 +11,9 @@ echo ">>> start test"
 curl "http://localhost:9999/api?key=Tom" &
 curl "http://localhost:9999/api?key=Tom" &
 curl "http://localhost:9999/api?key=Tom" &
+# 上面的可能会合并成一条请求
+# 下面的请求会独立开
+sleep 2
+curl "http://localhost:9999/api?key=Tom" &
 
 wait
