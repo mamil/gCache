@@ -23,3 +23,7 @@ func startAPIServer(apiAddr string, g *gcache.Group) {
 	log.Println("fontend server is running at", apiAddr)
 	log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
 }
+
+func startApiNode() {
+	
+}

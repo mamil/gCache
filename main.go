@@ -42,7 +42,7 @@ func main() {
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 
-	apiAddr := "http://" + viper.GetString("APINODE.Addr")
+	apiAddr := "http://" + viper.GetString("APINODE.InterfaceAddr")
 
 	countStr := viper.GetString("CACHENODE.Count")
 	log.Printf("CACHENODE.Count:%s", countStr)
