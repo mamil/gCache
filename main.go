@@ -13,6 +13,9 @@ import (
 	"gCache/gcache"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/spf13/viper"
 )
 
 var db = map[string]string{
@@ -59,28 +62,47 @@ func startAPIServer(apiAddr string, g *gcache.Group) {
 	log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
 }
 
+func initConfig() error {
+	viper.SetConfigFile("./config.ini")
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("read config fail, err:%v", err)
+		return err
+	}
+	return nil
+}
+
 func main() {
-	var port int
+	if err := initConfig(); err != nil {
+		return
+	}
+
+	var node int
 	var api bool
-	flag.IntVar(&port, "port", 8001, "gcache server port")
+	flag.IntVar(&node, "node", 1, "gcache server node")
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 
-	apiAddr := "http://localhost:9999"
-	addrMap := map[int]string{
-		8001: "http://localhost:8001",
-		8002: "http://localhost:8002",
-		8003: "http://localhost:8003",
+	apiAddr := "http://" + viper.GetString("APINODE.Addr")
+
+	countStr := viper.GetString("CACHENODE.Count")
+	log.Printf("CACHENODE.Count:%s", countStr)
+	countInt, err := strconv.Atoi(countStr)
+	if err != nil {
+		log.Fatalf("convert countStr fail err:%v", err)
 	}
 
 	var addrs []string
-	for _, v := range addrMap {
-		addrs = append(addrs, v)
+	for i := 0; i < countInt; i++ {
+		addrName := fmt.Sprintf("CACHENODE.Addr%d", i)
+		addr := "http://" + viper.GetString(addrName)
+		addrs = append(addrs, addr)
 	}
 
 	gcache := createGroup()
 	if api {
 		go startAPIServer(apiAddr, gcache)
 	}
-	startCacheServer(addrMap[port], addrs, gcache)
+
+	startAddr := "http://" + viper.GetString(fmt.Sprintf("CACHENODE.Addr%d", node))
+	startCacheServer(startAddr, addrs, gcache)
 }
