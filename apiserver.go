@@ -42,18 +42,15 @@ func startApiNode(apiAddr string, g *gcache.Group) {
 	if err != nil {
 		log.Fatalf("convert countStr fail err:%v", err)
 	}
-	var addrs []string
+	addrs := map[int]string{}
 	for i := 0; i < countInt; i++ {
 		addrName := fmt.Sprintf("APINODE.InternalAddr%d", i)
-		addr := HttpPre + viper.GetString(addrName)
-		addrs = append(addrs, addr)
+		addrs[i] = HttpPre + viper.GetString(addrName)
 	}
 
 	// 启动多个节点
 	for i := 0; i < countInt; i++ {
-		addrName := fmt.Sprintf("APINODE.InternalAddr%d", i)
-		addr := HttpPre + viper.GetString(addrName)
-		node := initNode(addr, addrs, leadFunc)
+		node := initNode(i, addrs, leadFunc)
 		go node.run()
 	}
 }
