@@ -16,6 +16,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	HttpPre = "http://"
+)
+
 var db = map[string]string{
 	"Tom":  "630",
 	"Jack": "589",
@@ -42,7 +46,7 @@ func main() {
 	flag.BoolVar(&api, "api", false, "Start a api server?")
 	flag.Parse()
 
-	apiAddr := "http://" + viper.GetString("APINODE.InterfaceAddr")
+	apiAddr := HttpPre + viper.GetString("APINODE.InterfaceAddr")
 
 	countStr := viper.GetString("CACHENODE.Count")
 	log.Printf("CACHENODE.Count:%s", countStr)
@@ -54,15 +58,15 @@ func main() {
 	var addrs []string
 	for i := 0; i < countInt; i++ {
 		addrName := fmt.Sprintf("CACHENODE.Addr%d", i)
-		addr := "http://" + viper.GetString(addrName)
+		addr := HttpPre + viper.GetString(addrName)
 		addrs = append(addrs, addr)
 	}
 
 	gcache := createGroup()
 	if api {
-		go startAPIServer(apiAddr, gcache)
+		go startApiNode(apiAddr, gcache)
 	}
 
-	startAddr := "http://" + viper.GetString(fmt.Sprintf("CACHENODE.Addr%d", node))
+	startAddr := HttpPre + viper.GetString(fmt.Sprintf("CACHENODE.Addr%d", node))
 	startCacheServer(startAddr, addrs, gcache)
 }
