@@ -64,7 +64,7 @@ func initNode(id int, addrs map[int]string, leadFunc LeaderFunc) *Raft {
 	return raft
 }
 
-func send(data string, addr string) {
+func (r *Raft) send(data string, addr string) {
 	req.Post(addr, data)
 	log.Infof("send[%+v] to %s", data, addr)
 }
@@ -170,7 +170,7 @@ func (r *Raft) leaderHandle(data string) {
 	dataStr := string(dataByte[:])
 
 	for _, peerAddr := range r.peerAddr {
-		send(dataStr, peerAddr)
+		r.send(dataStr, peerAddr)
 	}
 }
 
@@ -224,7 +224,7 @@ func (r *Raft) requestVote() {
 	dataStr := string(dataByte[:])
 
 	for _, peerAddr := range r.peerAddr {
-		send(dataStr, peerAddr)
+		r.send(dataStr, peerAddr)
 	}
 }
 
@@ -258,5 +258,5 @@ func (r *Raft) responseVote(message InternalMessage) {
 		return
 	}
 	dataStr := string(dataByte[:])
-	send(dataStr, message.Addr)
+	r.send(dataStr, message.Addr)
 }
