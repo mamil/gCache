@@ -53,9 +53,18 @@ func TestLeadElection(t *testing.T) {
 		2: "http://localhost:8083",
 	}
 
-	raft0 := initNode(0, addrs, nil)
-	raft0.run()
+	leaderCall := func() {
+		log.Infof("I'm leader!")
+	}
 
+	raft0 := initNode(0, addrs, leaderCall)
+	go raft0.run()
+	raft1 := initNode(1, addrs, leaderCall)
+	go raft1.run()
+	raft2 := initNode(2, addrs, leaderCall)
+	go raft2.run()
+
+	time.Sleep(time.Duration(20000) * time.Millisecond)
 }
 
 // 单独组件测试

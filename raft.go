@@ -71,6 +71,7 @@ func (r *Raft) send(data string, addr string) {
 
 // 接收peer node的内部消息
 func (r *Raft) receive(addr string, messageChan chan string) {
+	log.Infof("receive addr:%s", addr)
 	handler := func(w http.ResponseWriter, req *http.Request) {
 		r.resetReceiveTimer()
 
@@ -81,9 +82,10 @@ func (r *Raft) receive(addr string, messageChan chan string) {
 		log.Infof("receive body[%s]", string(body))
 	}
 
-	http.Handle("/", http.HandlerFunc(handler))
+	serveMux := http.NewServeMux()
+	serveMux.Handle("/", http.HandlerFunc(handler))
 	log.Println("raft receive is running at", addr)
-	log.Info(http.ListenAndServe(addr[7:], nil))
+	log.Info(http.ListenAndServe(addr[7:], serveMux))
 }
 
 // 接收超时处理
