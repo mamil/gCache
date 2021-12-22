@@ -34,8 +34,9 @@ type Raft struct {
 	role      int     // 现在的角色
 	term      uint64  // 任期
 	logIndex  uint64  // log id, 这里仅用到选举流程，不用这个也没关系
-	heartBeat int     // 心跳时间,ms
+	heartBeat int64   // 心跳时间,ms
 	waitMs    []int64 // 随机等待时间,ms
+	timerGap  int64   // timer设置的时间
 
 	nextLeaderElectionTime int64  // 下次选举时间,ms,13位时间戳
 	gettedVote             int    // 获取的选票数
@@ -60,6 +61,7 @@ func initNode(id int, addrs map[int]string, leadFunc LeaderFunc) *Raft {
 		peerAddr:  addrs,
 		leadFunc:  leadFunc,
 	}
+	raft.timerGap = raft.heartBeat / 2
 	log.Infof("initNode:%+v", raft)
 	return raft
 }
@@ -96,12 +98,13 @@ func (r *Raft) receiveTimeoutHandler(messageChan chan string) {
 		// 超时，向chan发送空字符串
 		emptyStr := ""
 		messageChan <- emptyStr
+		r.resetReceiveTimer()
 	}
 }
 
 // 重设timer，单位ms
 func (r *Raft) resetReceiveTimer() {
-	r.receiveTimer.Reset(time.Duration((r.heartBeat - 1000)) * time.Millisecond)
+	r.receiveTimer.Reset(time.Duration(r.timerGap+int64(rand.Int63n(r.timerGap))) * time.Millisecond)
 }
 
 // 计算下一次选举时间
@@ -112,7 +115,7 @@ func (r *Raft) getNextLeaderElectionTime() int64 {
 
 func (r *Raft) run() {
 	message := make(chan string, MaxMessgaeSize)
-	receiveTimer := time.NewTimer(time.Duration((r.heartBeat - 1000)) * time.Millisecond)
+	receiveTimer := time.NewTimer(time.Duration(r.timerGap+int64(rand.Int63n(r.timerGap))) * time.Millisecond)
 	r.receiveTimer = receiveTimer
 	r.nextLeaderElectionTime = r.getNextLeaderElectionTime()
 	go r.receiveTimeoutHandler(message)     // 开启接受超时
@@ -133,7 +136,7 @@ func (r *Raft) run() {
 func (r *Raft) followerHandle(data string) {
 	log.Infof("followerHandle addr:%s data:%s", r.peerAddr[r.id], data)
 
-	if data == "" { // follower只要有一个超时就会转化为candidate，所以超时时间不能太短，而且follower会转为candidate，然后收到主节点消息，再转为follower
+	if data == "" {
 		currentTime := time.Now().UnixNano() / 1e6
 		log.Infof("followerHandle addr:%s, currentTime:%d, nextLeaderElectionTime:%d", r.peerAddr[r.id], currentTime, r.nextLeaderElectionTime)
 		if currentTime > r.nextLeaderElectionTime { // 开始选举
@@ -144,8 +147,6 @@ func (r *Raft) followerHandle(data string) {
 			r.voteForTerm = r.term
 			r.requestVote()
 			log.Infof("followerHandle change to Candidate, request vote, addr:%s", r.peerAddr[r.id])
-		} else {
-			r.resetReceiveTimer()
 		}
 	} else {
 		var message InternalMessage
