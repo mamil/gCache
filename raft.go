@@ -133,7 +133,7 @@ func (r *Raft) run() {
 func (r *Raft) followerHandle(data string) {
 	log.Infof("followerHandle addr:%s data:%s", r.peerAddr[r.id], data)
 
-	if data == "" {
+	if data == "" { // follower只要有一个超时就会转化为candidate，所以超时时间不能太短，而且follower会转为candidate，然后收到主节点消息，再转为follower
 		currentTime := time.Now().UnixNano() / 1e6
 		log.Infof("followerHandle addr:%s, currentTime:%d, nextLeaderElectionTime:%d", r.peerAddr[r.id], currentTime, r.nextLeaderElectionTime)
 		if currentTime > r.nextLeaderElectionTime { // 开始选举
@@ -211,6 +211,8 @@ func (r *Raft) candidateHandle(data string) {
 		} else if message.MsgType == "AppendEntries" {
 			r.gettedVote = 0
 			r.role = Follower
+			r.nextLeaderElectionTime = r.getNextLeaderElectionTime() // 重置下次选举时间
+			log.Infof("candidateHandle %s change to follower", r.peerAddr[r.id])
 		}
 	} else { // 一次选举超时，开始下一次
 		log.Infof("candidateHandle %s timeout, term mod to:%d", r.peerAddr[r.id], r.term+1)
