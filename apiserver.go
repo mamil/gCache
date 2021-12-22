@@ -13,22 +13,24 @@ import (
 type LeaderFunc func()
 
 // 启动对外API服务
+// 上一个API服务如果是没有释放端口的，需要一种清理机制
 func startAPIServer(apiAddr string, g *gcache.Group) LeaderFunc {
 	return func() {
-		http.Handle("/api", http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				key := r.URL.Query().Get("key")
-				view, err := g.Get(key)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				w.Header().Set("Content-Type", "application/octet-stream")
-				w.Write(view.ByteSlice())
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			key := r.URL.Query().Get("key")
+			view, err := g.Get(key)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Write(view.ByteSlice())
 
-			}))
-		log.Println("fontend server is running at", apiAddr)
-		log.Fatal(http.ListenAndServe(apiAddr[7:], nil))
+		}
+
+		serveMux := http.NewServeMux()
+		serveMux.Handle("/api", http.HandlerFunc(handler))
+		log.Fatal(http.ListenAndServe(apiAddr[7:], serveMux))
 	}
 }
 

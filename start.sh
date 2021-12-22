@@ -6,7 +6,7 @@ go build -o server
 ./server -node=1 &
 ./server -node=2 -api=1 &
 
-sleep 2
+sleep 5
 echo ">>> start test"
 curl "http://localhost:9999/api?key=Tom" &
 curl "http://localhost:9999/api?key=Tom" &

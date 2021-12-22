@@ -204,7 +204,7 @@ func (r *Raft) candidateHandle(data string) {
 			if r.gettedVote > len(r.peerAddr)/2 {
 				r.gettedVote = 0
 				r.role = Leader
-				r.leadFunc()
+				go r.leadFunc()
 				log.Infof("candidateHandle %s change to leader", r.peerAddr[r.id])
 			}
 		} else if message.MsgType == "RequestVote" {
