@@ -66,7 +66,7 @@ func initNode(id int, addrs map[int]string, leadFunc LeaderFunc) *Raft {
 
 func (r *Raft) send(data string, addr string) {
 	req.Post(addr, data)
-	log.Infof("send[%+v] to %s", data, addr)
+	log.Infof("send self:%s to %s, data[%+v]", r.peerAddr[r.id], addr, data)
 }
 
 // 接收peer node的内部消息
@@ -79,7 +79,7 @@ func (r *Raft) receive(addr string, messageChan chan string) {
 		body := make([]byte, len)
 		req.Body.Read(body)
 		messageChan <- string(body)
-		log.Infof("receive body[%s]", string(body))
+		log.Infof("receive self:%s, body[%s]", r.peerAddr[r.id], string(body))
 	}
 
 	serveMux := http.NewServeMux()
@@ -131,14 +131,21 @@ func (r *Raft) run() {
 }
 
 func (r *Raft) followerHandle(data string) {
+	log.Infof("followerHandle addr:%s data:%s", r.peerAddr[r.id], data)
+
 	if data == "" {
 		currentTime := time.Now().UnixNano() / 1e6
-		log.Infof("followerHandle currentTime:%d, nextLeaderElectionTime:%d", currentTime, r.nextLeaderElectionTime)
+		log.Infof("followerHandle addr:%s, currentTime:%d, nextLeaderElectionTime:%d", r.peerAddr[r.id], currentTime, r.nextLeaderElectionTime)
 		if currentTime > r.nextLeaderElectionTime { // 开始选举
 			r.role = Candidate
 			r.term += 1
+			r.voteFor = r.peerAddr[r.id]
+			r.gettedVote = 1
+			r.voteForTerm = r.term
 			r.requestVote()
 			log.Infof("followerHandle change to Candidate, request vote, addr:%s", r.peerAddr[r.id])
+		} else {
+			r.resetReceiveTimer()
 		}
 	} else {
 		var message InternalMessage
@@ -171,7 +178,10 @@ func (r *Raft) leaderHandle(data string) {
 	}
 	dataStr := string(dataByte[:])
 
-	for _, peerAddr := range r.peerAddr {
+	for index, peerAddr := range r.peerAddr {
+		if index == r.id {
+			continue
+		}
 		r.send(dataStr, peerAddr)
 	}
 }
@@ -182,17 +192,19 @@ func (r *Raft) candidateHandle(data string) {
 	if data != "" {
 		var message InternalMessage
 		if err := json.Unmarshal([]byte(data), &message); err != nil {
-			log.Errorf("followerHandle Unmarshal fail, data:%v", data)
+			log.Errorf("followerHandle %s Unmarshal fail, data:%v", r.peerAddr[r.id], data)
 			return
 		}
 
 		if message.MsgType == "responseVote" && message.VoteGranted {
 			r.gettedVote += 1
-			log.Infof("candidateHandle now have vote:%d, need:%d", r.gettedVote, len(r.peerAddr)/2)
+			log.Infof("candidateHandle %s now have vote:%d, need:%d", r.peerAddr[r.id], r.gettedVote, len(r.peerAddr)/2)
 
-			if r.gettedVote+1 > len(r.peerAddr) {
+			if r.gettedVote > len(r.peerAddr)/2 {
 				r.gettedVote = 0
 				r.role = Leader
+				r.leadFunc()
+				log.Infof("candidateHandle %s change to leader", r.peerAddr[r.id])
 			}
 		} else if message.MsgType == "RequestVote" {
 			r.responseVote(message)
@@ -201,8 +213,12 @@ func (r *Raft) candidateHandle(data string) {
 			r.role = Follower
 		}
 	} else { // 一次选举超时，开始下一次
+		log.Infof("candidateHandle %s timeout, term mod to:%d", r.peerAddr[r.id], r.term+1)
+
 		r.term += 1
-		r.gettedVote = 0
+		r.voteFor = r.peerAddr[r.id]
+		r.gettedVote = 1
+		r.voteForTerm = r.term
 		r.requestVote()
 	}
 }
@@ -225,7 +241,10 @@ func (r *Raft) requestVote() {
 	}
 	dataStr := string(dataByte[:])
 
-	for _, peerAddr := range r.peerAddr {
+	for index, peerAddr := range r.peerAddr {
+		if index == r.id {
+			continue
+		}
 		r.send(dataStr, peerAddr)
 	}
 }
@@ -245,12 +264,16 @@ func (r *Raft) responseVote(message InternalMessage) {
 		r.voteForTerm = message.LastLogTerm
 
 		response.VoteGranted = true
+		log.Infof("responseVote self:%s, vote to peer:%s, r.logIndex:%d, message.LastLogIndex:%d",
+			r.peerAddr[r.id], message.Addr, r.logIndex, message.LastLogIndex)
 
 	} else if r.voteFor != "" && message.Term > r.voteForTerm { // 上次选举失败，有更新的开始，则投票
 		r.voteFor = message.Addr
 		r.voteForTerm = message.Term
 
 		response.VoteGranted = true
+		log.Infof("responseVote self:%s, vote to peer:%s, r.voteForTerm:%d, message.Term:%d",
+			r.peerAddr[r.id], message.Addr, r.voteForTerm, message.Term)
 	}
 
 	// 回复

@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,8 +54,10 @@ func TestLeadElection(t *testing.T) {
 		2: "http://localhost:8083",
 	}
 
+	called := uint64(0)
 	leaderCall := func() {
 		log.Infof("I'm leader!")
+		atomic.AddUint64(&called, 1)
 	}
 
 	raft0 := initNode(0, addrs, leaderCall)
@@ -65,6 +68,9 @@ func TestLeadElection(t *testing.T) {
 	go raft2.run()
 
 	time.Sleep(time.Duration(20000) * time.Millisecond)
+	log.Infof("### called:%d", called)
+	ast := assert.New(t)
+	ast.Equal(uint64(1), called)
 }
 
 // 单独组件测试
