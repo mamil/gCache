@@ -2,7 +2,7 @@ package gcache
 
 import (
 	"fmt"
-	"gCache/gcache/consistenthash"
+	"gcache/gcache/consistenthash"
 	"io/ioutil"
 	"log"
 	"net/http"
