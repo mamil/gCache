@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gCache/gcache"
+	"gcache/gcache"
 	"log"
 	"net/http"
 )

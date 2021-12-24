@@ -2,7 +2,7 @@ package gcache
 
 import (
 	"fmt"
-	"gCache/gcache/singleflight"
+	"gcache/gcache/singleflight"
 	"log"
 	"sync"
 )
