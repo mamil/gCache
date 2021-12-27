@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"gcache/gcache/consistenthash"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

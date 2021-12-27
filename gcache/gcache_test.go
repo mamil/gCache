@@ -2,9 +2,10 @@ package gcache
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var db = map[string]string{
