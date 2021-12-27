@@ -80,7 +80,7 @@ func cleanPort(apiAddr string) {
 		log.Errorf("cleanPort run Command fail, err:%v", err)
 		return
 	}
-	log.Infof("cleanPort run Command result:%s", string(output))
+	log.Debugf("cleanPort run Command result:%s", string(output))
 
 	// maybe return with :(Not all processes could be identified, non-owned process info\n will not be shown, you would have to be root to see it all.)\n1\n
 	res := string(output)
