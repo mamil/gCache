@@ -1,0 +1,1 @@
+docker build -t gcache:v0.1 .

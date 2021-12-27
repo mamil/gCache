@@ -4,9 +4,7 @@ import (
 	"testing"
 )
 
-func TestPort(t *testing.T) {
-
-	cleanPort("http://localhost:9999")
+func TestFunc(t *testing.T) {
 
 	// ast := assert.New(t)
 	// ast.Equal("test from send", msg)
