@@ -68,7 +68,7 @@ func initNode(id int, addrs map[int]string, leadFunc LeaderFunc) *Raft {
 
 func (r *Raft) send(data string, addr string) {
 	req.Post(addr, data)
-	log.Infof("send self:%s to %s, data[%+v]", r.peerAddr[r.id], addr, data)
+	log.Debugf("send self:%s to %s, data[%+v]", r.peerAddr[r.id], addr, data)
 }
 
 // 接收peer node的内部消息
@@ -81,7 +81,7 @@ func (r *Raft) receive(addr string, messageChan chan string) {
 		body := make([]byte, len)
 		req.Body.Read(body)
 		messageChan <- string(body)
-		log.Infof("receive self:%s, body[%s]", r.peerAddr[r.id], string(body))
+		log.Debugf("receive self:%s, body[%s]", r.peerAddr[r.id], string(body))
 	}
 
 	serveMux := http.NewServeMux()
@@ -134,11 +134,11 @@ func (r *Raft) run() {
 }
 
 func (r *Raft) followerHandle(data string) {
-	log.Infof("followerHandle addr:%s data:%s", r.peerAddr[r.id], data)
+	log.Debugf("followerHandle addr:%s data:%s", r.peerAddr[r.id], data)
 
 	if data == "" {
 		currentTime := time.Now().UnixNano() / 1e6
-		log.Infof("followerHandle addr:%s, currentTime:%d, nextLeaderElectionTime:%d", r.peerAddr[r.id], currentTime, r.nextLeaderElectionTime)
+		log.Debugf("followerHandle addr:%s, currentTime:%d, nextLeaderElectionTime:%d", r.peerAddr[r.id], currentTime, r.nextLeaderElectionTime)
 		if currentTime > r.nextLeaderElectionTime { // 开始选举
 			r.role = Candidate
 			r.term += 1

@@ -1,14 +1,15 @@
-package gcache
+package cache
 
 import (
 	"fmt"
-	"gcache/gcache/consistenthash"
+	"gcache/cache/consistenthash"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (

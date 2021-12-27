@@ -1,8 +1,8 @@
-package gcache
+package cache
 
 import (
 	"fmt"
-	"gcache/gcache/singleflight"
+	"gcache/cache/singleflight"
 	"log"
 	"sync"
 )
