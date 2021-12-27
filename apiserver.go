@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gcache/gcache"
+	"gcache/cache"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -16,7 +16,7 @@ type LeaderFunc func()
 
 // 启动对外API服务
 // 上一个API服务如果是没有释放端口的，需要一种清理机制
-func startAPIServer(apiAddr string, g *gcache.Group) LeaderFunc {
+func startAPIServer(apiAddr string, g *cache.Group) LeaderFunc {
 	return func() {
 		//清理
 		cleanPort(apiAddr)
@@ -40,7 +40,7 @@ func startAPIServer(apiAddr string, g *gcache.Group) LeaderFunc {
 	}
 }
 
-func startApiNode(apiAddr string, g *gcache.Group) {
+func startApiNode(apiAddr string, g *cache.Group) {
 	// 获取leader的回调函数
 	leadFunc := startAPIServer(apiAddr, g)
 

@@ -1,8 +1,8 @@
-package gcache
+package cache
 
 import (
 	"fmt"
-	"gcache/gcache/consistenthash"
+	"gcache/cache/consistenthash"
 	"io/ioutil"
 	"net/http"
 	"net/url"

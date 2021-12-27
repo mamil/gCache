@@ -1,4 +1,4 @@
-package gcache
+package cache
 
 type ByteView struct {
 	b []byte
