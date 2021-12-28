@@ -3,14 +3,15 @@ package main
 import (
 	"fmt"
 	"gcache/cache"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func createGroup() *cache.Group {
 	return cache.NewGroup("scores", 2<<10, cache.GetterFunc(
 		func(key string) ([]byte, error) {
-			log.Println("[SlowDB] search key", key)
+			log.Info("[SlowDB] search key", key)
 			if v, ok := db[key]; ok {
 				return []byte(v), nil
 			}
@@ -23,6 +24,6 @@ func startCacheServer(addr string, addrs []string, g *cache.Group) {
 	peers := cache.NewHTTPPool(addr)
 	peers.Set(addrs...)
 	g.RegisterPeers(peers)
-	log.Println("cache is running at", addr)
+	log.Infof("cache is running at:%s", addr)
 	log.Fatal(http.ListenAndServe(addr[7:], peers))
 }
