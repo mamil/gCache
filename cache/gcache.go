@@ -3,8 +3,9 @@ package cache
 import (
 	"fmt"
 	"gcache/cache/singleflight"
-	"log"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Group struct {
@@ -45,7 +46,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
-	log.Printf("new group %s added", name)
+	log.Infof("new group %s added", name)
 	return g
 }
 
@@ -64,7 +65,7 @@ func (g *Group) Get(key string) (ByteView, error) {
 	}
 
 	if v, ok := g.mainCache.get(key); ok { // 先查找缓存，是否有这个数据
-		log.Println("gcache hit")
+		log.Infof("gcache hit")
 		return v, nil
 	}
 
@@ -80,7 +81,7 @@ func (g *Group) load(key string) (value ByteView, err error) {
 				if value, err = g.getFromPeer(peer, key); err == nil {
 					return value, nil
 				}
-				log.Println("[GeeCache] Failed to get from peer", err)
+				log.Infof("[GeeCache] Failed to get from peer", err)
 			}
 		}
 

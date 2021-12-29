@@ -2,9 +2,14 @@
 trap "rm server;kill 0" EXIT
 
 go build -o server
-./server -node=0 &
+
+# # ./server -node=0 &
 ./server -node=1 &
-./server -node=2 -api=1 &
+./server -node=2 &
+
+./server -api=0 &
+./server -api=1 &
+./server -api=2 &
 
 sleep 5
 echo ">>> start test"

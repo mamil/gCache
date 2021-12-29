@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"gcache/cache"
 	"net/http"
 	"strconv"
 
@@ -13,8 +12,13 @@ import (
 type LeaderFunc func()
 
 // 启动对外API服务
-func startAPIServer(apiAddr string, g *cache.Group) LeaderFunc {
+func startAPIServer(apiAddr string, nodeId int) LeaderFunc {
 	return func() {
+		// 启动api下的node
+		startAddr, addrs, g := NodePrepare(nodeId)
+		go StartNode(startAddr, addrs, g)
+		// log.Infof("##### g:%+v", *g)
+
 		//监听
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			key := r.URL.Query().Get("key")
@@ -30,13 +34,14 @@ func startAPIServer(apiAddr string, g *cache.Group) LeaderFunc {
 
 		serveMux := http.NewServeMux()
 		serveMux.Handle("/api", http.HandlerFunc(handler))
+		log.Infof("startAPIServer on %s", apiAddr)
 		log.Fatal(http.ListenAndServe(apiAddr[7:], serveMux))
 	}
 }
 
-func startApiNode(apiAddr string, g *cache.Group) {
+func startApiNode(apiId int, apiAddr string, nodeId int) {
 	// 获取leader的回调函数
-	leadFunc := startAPIServer(apiAddr, g)
+	leadFunc := startAPIServer(apiAddr, nodeId)
 
 	countStr := viper.GetString("APINODE.Count")
 	log.Infof("APINODE.Count:%s", countStr)
@@ -50,9 +55,7 @@ func startApiNode(apiAddr string, g *cache.Group) {
 		addrs[i] = HttpPre + viper.GetString(addrName)
 	}
 
-	// 启动多个节点
-	for i := 0; i < countInt; i++ {
-		node := initNode(i, addrs, leadFunc)
-		go node.run()
-	}
+	// 启动节点
+	node := initNode(apiId, addrs, leadFunc)
+	node.run()
 }

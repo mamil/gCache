@@ -10,6 +10,7 @@ kkk not exist
 import (
 	"flag"
 	"fmt"
+	"gcache/cache"
 	"strconv"
 	"strings"
 
@@ -18,7 +19,8 @@ import (
 )
 
 const (
-	HttpPre = "http://"
+	HttpPre       = "http://"
+	DefaultNodeId = 0
 )
 
 var db = map[string]string{
@@ -72,6 +74,30 @@ func GetLogLevel(logLevelConfig string) log.Level {
 	return level
 }
 
+func NodePrepare(nodeId int) (startAddr string, addrs []string, g *cache.Group) {
+	// 获取节点地址
+	countStr := viper.GetString("CACHENODE.Count")
+	log.Infof("CACHENODE.Count:%s", countStr)
+	countInt, err := strconv.Atoi(countStr)
+	if err != nil {
+		log.Fatalf("convert countStr fail err:%v", err)
+	}
+	// var addrs []string
+	for i := 0; i < countInt; i++ {
+		addrName := fmt.Sprintf("CACHENODE.Addr%d", i)
+		addr := HttpPre + viper.GetString(addrName)
+		addrs = append(addrs, addr)
+	}
+
+	g = createGroup()
+	startAddr = HttpPre + viper.GetString(fmt.Sprintf("CACHENODE.Addr%d", nodeId))
+	return
+}
+
+func StartNode(startAddr string, addrs []string, g *cache.Group) {
+	startCacheServer(startAddr, addrs, g)
+}
+
 func main() {
 	if err := initConfig(); err != nil {
 		return
@@ -80,32 +106,19 @@ func main() {
 	InitLogger()
 
 	var node int
-	var api bool
-	flag.IntVar(&node, "node", 1, "gcache server node")
-	flag.BoolVar(&api, "api", false, "Start a api server?")
+	var api int
+	flag.IntVar(&node, "node", -1, "gcache server node")
+	flag.IntVar(&api, "api", -1, "gcache api node")
 	flag.Parse()
 
-	apiAddr := HttpPre + viper.GetString("APINODE.InterfaceAddr")
-
-	countStr := viper.GetString("CACHENODE.Count")
-	log.Infof("CACHENODE.Count:%s", countStr)
-	countInt, err := strconv.Atoi(countStr)
-	if err != nil {
-		log.Fatalf("convert countStr fail err:%v", err)
+	// 此节点是api还是node
+	if node >= 0 {
+		startAddr, addrs, g := NodePrepare(node)
+		StartNode(startAddr, addrs, g)
 	}
-
-	var addrs []string
-	for i := 0; i < countInt; i++ {
-		addrName := fmt.Sprintf("CACHENODE.Addr%d", i)
-		addr := HttpPre + viper.GetString(addrName)
-		addrs = append(addrs, addr)
+	if api >= 0 {
+		apiAddr := HttpPre + viper.GetString("APINODE.InterfaceAddr")
+		log.Infof("apiAddr:%s", apiAddr)
+		startApiNode(api, apiAddr, DefaultNodeId)
 	}
-
-	gcache := createGroup()
-	if api {
-		go startApiNode(apiAddr, gcache)
-	}
-
-	startAddr := HttpPre + viper.GetString(fmt.Sprintf("CACHENODE.Addr%d", node))
-	startCacheServer(startAddr, addrs, gcache)
 }
