@@ -1,2 +1,2 @@
-FROM golang
-COPY ./gcache /go
+FROM ubuntu
+COPY ./gcache /home
